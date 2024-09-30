@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <meta name="description" content="Login - Register Template">
+    <meta name="author" content="Lorenzo Angelino aka MrLolok">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="main.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to bottom, #6876b8, #9ca8db);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Login</h1>
+    <div id="container-login">
+        <div id="title">
+            <i class="material-icons lock">lock</i> Login
+        </div>
+
+        <!-- auth message display-->
+        <div id="auth-msg" style="display: none;"></div>
+
+        <!--login form -->
+        <form id="form">
+            <div class="input">
+                <div class="input-addon">
+                    <i class="material-icons">face</i>
+                </div>
+                <input id="email" placeholder="Email" type="text" required class="validate" autocomplete="off">
+            </div>
+
+            <div class="clearfix"></div>
+
+            <div class="input">
+                <div class="input-addon">
+                    <i class="material-icons">vpn_key</i>
+                </div>
+                <input id="password" placeholder="Password" type="password" required class="validate" autocomplete="off">
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="remember-me">
+                <label for ="remeber-me">Remember Me</label>
+            </div>
+
+            <input type="submit" value="Log In" />
+            <p id="auth-msg"></p>
+        </form>
+        
+      
+
+
+        <div class="forgot-password">
+            <a href="#">Forgot your password?</a>
+        </div>
+        <div class="privacy">
+            <a href="#">Privacy Policy</a>
+        </div>
+
+        <div class="register">
+            <span style="color: #657575">Don't have an account yet?</span>
+            <a href="./register.html"><button id="register-link">Register here</button></a>
+        </div>
+    </div>
+
+    <ul id="transaction-list"></ul>
+
+    
+
+    <!-- script file -->
+    <script src="script.js"></script>
+</body>
+
+</html>
