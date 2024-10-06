@@ -7,22 +7,21 @@
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
-    <div class="sidebar" id="sidebar"></div>
-        <div class="hamburger" id="hamburger">&#9776;</div>
-        <ul class="sidebar-menu" id="sidebar-menu">
-            <li><a href="homepage.html">Homepage</a></li>
-            <li><a href="category_summary.html">Summary</a></li>
-            
-        </ul>
+    <div class="top-bar">
+        <a href="homepage.html" class="homepage-link" style="font-weight: bold;">Homepage</a>
+        <a href="summary.html" class="summary-link" style="font-weight: bold;">Summary</a>
+        <a href="#" class="logout-link" style="font-weight: bold;">Logout</a>
     </div>
+    
     <header>
+        
         <h1>Expense Tracker</h1>
-        <button id="logout-button">Logout</button>
+        
     </header>
 
     <main>
         <section id="dashboard">
-            <h2>Dashboard</h2>
+            <h1>Dashboard</h1>
             <div class="info-box" id="balance-section">
                 <h3>Balance</h3>
                 <p id="balance">$0.00</p>
@@ -65,10 +64,10 @@
 
                 <label for="type">Type:</label>
                 <label for="income-type">Income</label>
-                <input type="radio" id="income-type" name="type" value="Income" required>
+                <input type="radio" id="type" name="type" value="Income" required>
 
                 <label for="expense-type">Expense</label>
-                <input type="radio" id="expense-type" name="type" value="Expense" required>
+                <input type="radio" id="type" name="type" value="Expense" required>
 
                 <button type="submit">Add Transaction</button>
             </form>
@@ -78,13 +77,9 @@
             <h2>Previous Transactions</h2>
             <ul id="transaction-list"></ul>
         </section>
-            <p id="auth-msg"></p>
-        
 
-        <section id="summary">
-            <h2>Expense Summary by Category</h2>
-            <ul id="category-summary"></ul>
-        </section>
+        
+            <p id="auth-msg"></p>
         
     </main>
 

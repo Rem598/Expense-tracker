@@ -1,40 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const categoryList = document.getElementById('category-summary');
+    const categoryList = document.getElementById('summary');
 
+    // Function to update the DOM with the category summary
+    function updateCategorySummaryDOM(categorySummary) {
+        categoryList.innerHTML = ''; // Clear existing summary
+        categorySummary.forEach(category => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${category.category}: $${category.total}`;
+            categoryList.appendChild(listItem);
+        });
+    }
+
+    // Fetch the category summary from the server
     async function fetchCategorySummary() {
         try {
-            const response = await fetch('http://localhost:4000/category-summary'); 
+            const response = await fetch('http://localhost:4000/summary');  
+    
+            console.log('Response headers:', response.headers.get('content-type'));  // Debug response headers
+            console.log('Response status:', response.status);  // Debug response status
+    
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
             }
-            const transactions= await response.json();
+    
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const categorySummary = await response.json();
+                updateCategorySummaryDOM(categorySummary);
+            } else {
+                throw new Error('Expected JSON, but got something else.');
+            }
+    
+        
+    
 
-            const categorySummary = {};
-
-            transactions.forEach(transaction => {
-                if (transaction.type === 'Expense') {
-                    if (!categorySummary[transaction.category]) {
-                        categorySummary[transaction.category] = 0;
-                    }
-                    categorySummary[transaction.category] += parseFloat(transaction.amount);
-                }
-            });
-
-            
-
-            // Check if the category summary is empty
-            if (Object.keys(categorySummary).length === 0) {
+            // Check if the summary is empty
+            if (categorySummary.length === 0) {
                 categoryList.innerHTML = '<li>No expenses found.</li>';
                 return;
             }
-            
-            categoryList.innerHTML = ''; // Clear existing summary
-            Object.keys(categorySummary).forEach(category => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${category}: $${categorySummary[category].toFixed(2)}`;
-                categoryList.appendChild(listItem);
-            });
-            
+
+            // Update the DOM with the fetched data
+            updateCategorySummaryDOM(categorySummary);
         } catch (error) {
             console.error('Error fetching category summary:', error);
         }
