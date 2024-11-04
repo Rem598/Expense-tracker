@@ -6,6 +6,8 @@ const bcrypt = require('bcrypt');
 const dotenv = require('dotenv');
 const path = require('path');
 const session = require('express-session'); // Import express-session
+const RedisStore = require('connect-redis').default; // Properly configure RedisStore
+const redis = require('redis').createClient(); // Create Redis client
 const port = 4000;
 
 dotenv.config();
@@ -16,11 +18,13 @@ app.use(cors());
 // Serve static files from the root directory
 app.use(express.static(__dirname));
 
+// Initialize Redis Store in session middleware
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    store: new RedisStore({ client: redis }),
+    secret: process.env.SESSION_SECRET, // Ensure SESSION_SECRET is set in .env
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false} // Change to true if using HTTPS
+    cookie: { secure: false } // Change to true if using HTTPS
 }));
 
 // Middleware to check if user is authenticated
@@ -31,8 +35,6 @@ function ensureAuthenticated(req, res, next) {
     res.redirect('/index.html');
 }
 
-let transactions = []; 
-
 // MySQL connection
 const ddb = mysql.createConnection({
     host: process.env.DDB_HOST,
@@ -41,11 +43,11 @@ const ddb = mysql.createConnection({
 });
 
 ddb.connect((err) => {
-    if (err) return console.log("Error connecting MYSQL");
+    if (err) return console.log("Error connecting to MySQL:", err);
 
     console.log("Connected to MySQL: ", ddb.threadId);
 
-    // Create a database
+    // Create a database if it doesn't exist
     ddb.query(`CREATE DATABASE IF NOT EXISTS expenses_tracker`, (err) => {
         if (err) return console.log(err);
 
@@ -64,8 +66,7 @@ ddb.connect((err) => {
                 email VARCHAR(100) NOT NULL UNIQUE,
                 username VARCHAR(50) NOT NULL,
                 password VARCHAR(255) NOT NULL
-            )
-            `;
+            )`;
             const createTableQuery = `
             CREATE TABLE IF NOT EXISTS transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,9 +75,7 @@ ddb.connect((err) => {
                 date DATE NOT NULL,
                 type ENUM('Income', 'Expense') NOT NULL,
                 category VARCHAR(50) NOT NULL
-            );
-            `;
- 
+            );`;
 
             ddb.query(createUsersTable, (err) => {
                 if (err) return console.log(err);
@@ -95,10 +94,7 @@ ddb.connect((err) => {
     });
 });
 
-
-
-
-// route for index page(login or register page)
+// Route for index page (login or register page)
 app.get('/', (req, res) => {
     if (req.session.user) {
         return res.redirect('/homepage.html');
@@ -111,12 +107,10 @@ app.get('/homepage.html', ensureAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'homepage.html'));
 });
 
-
 // Define the login route
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
-
 
 // Define the register route
 app.get('/register', (req, res) => {
@@ -128,24 +122,20 @@ app.get('/transactions', (req, res) => {
     res.json(transactions);
 });
 
-
-
-
-app.get('/category-summary', ensureAuthenticated,(req, res) => {
+// Get category summary
+app.get('/category-summary', ensureAuthenticated, (req, res) => {
     const getSummaryQuery = `
     SELECT category, SUM(amount) AS total 
     FROM transactions 
     WHERE type = 'Expense'
-    GROUP BY category
-    `;
-    
+    GROUP BY category`;
+
     ddb.query(getSummaryQuery, (err, results) => {
         if (err) return res.status(500).json("Failed to fetch category summary");
 
         res.json(results); 
     });
 });
-
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -190,10 +180,9 @@ app.post('/login', async (req, res) => {
 
             if (!isPasswordValid) return res.status(400).json("Invalid email or password");
 
-            
             req.session.user = user;  // Create a session for the user
             console.log('Session after login:', req.session);  // Debug session
-            res.status(200).json({message: "Login successful",redirectUrl:'homepage.html'});
+            res.status(200).json({ message: "Login successful", redirectUrl: 'homepage.html' });
         });
     } catch (err) {
         res.status(500).json("Internal server error");
@@ -208,14 +197,11 @@ app.post('/transactions', (req, res) => {
     if (!name || !amount || !date || !type || !category) {
         return res.status(400).json("All fields are required.");
     }
-    
-
 
     // Insert transaction into the database
     const insertTransactionQuery = `
         INSERT INTO transactions (name, amount, date, type, category) 
-        VALUES (?, ?, ?, ?, ?)
-    `;
+        VALUES (?, ?, ?, ?, ?)`;
     
     ddb.query(insertTransactionQuery, [name, amount, date, type, category], (err, result) => {
         if (err) {
@@ -233,7 +219,6 @@ function convertToYYYYMMDD(dateString) {
     return `${year}-${month}-${day}`;
 }
 
-
 // Logout route to destroy session
 app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
@@ -244,6 +229,7 @@ app.post('/logout', (req, res) => {
     });
 });
 
+// Start the server
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
