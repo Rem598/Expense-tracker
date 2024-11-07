@@ -8,7 +8,7 @@ const path = require('path');
 const session = require('express-session'); // Import express-session
 const RedisStore = require('connect-redis').default; // Properly configure RedisStore
 const redis = require('redis').createClient(); // Create Redis client
-const port = 4000;
+const port = process.env.PORT || 4000;
 
 dotenv.config();
 app.use(express.json());
