@@ -35,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 authMsg.style.display = 'block';
                 // Redirect to another page or handle the login success
                 // Redirect to index.html (the main page)
-                console.log('redirecting to index.html')
-                window.location.href = 'index.html';
+                console.log('redirecting to homepage.html')
+                window.location.href = 'homepage.html';
 
             } else {
                 authMsg.textContent = 'Login failed';

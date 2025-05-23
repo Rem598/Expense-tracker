@@ -6,8 +6,8 @@ const bcrypt = require('bcrypt');
 const dotenv = require('dotenv');
 const path = require('path');
 const session = require('express-session'); // Import express-session
-const RedisStore = require('connect-redis').default; // Properly configure RedisStore
-const redis = require('redis').createClient(); // Create Redis client
+
+
 const port = process.env.PORT || 4000;
 
 dotenv.config();
@@ -20,7 +20,6 @@ app.use(express.static(__dirname));
 
 // Initialize Redis Store in session middleware
 app.use(session({
-    store: new RedisStore({ client: redis }),
     secret: process.env.SESSION_SECRET, // Ensure SESSION_SECRET is set in .env
     resave: false,
     saveUninitialized: false,
@@ -74,7 +73,9 @@ ddb.connect((err) => {
                 amount DECIMAL(10, 2) NOT NULL,
                 date DATE NOT NULL,
                 type ENUM('Income', 'Expense') NOT NULL,
-                category VARCHAR(50) NOT NULL
+                category VARCHAR(50) NOT NULL, 
+                user_id INT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             );`;
 
             ddb.query(createUsersTable, (err) => {
@@ -118,24 +119,45 @@ app.get('/register', (req, res) => {
 });
 
 // Endpoint to get all transactions
-app.get('/transactions', (req, res) => {
-    res.json(transactions);
+app.get('/transactions', ensureAuthenticated, (req, res) => {
+    const userId = req.session.user.id; // grab user id from session
+    const query = `SELECT * FROM transactions WHERE user_id = ?`;
+    
+
+    ddb.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error("Error fetching transactions:", err);
+            return res.status(500).json("Failed to retrieve transactions.");
+        }
+        res.json(results);
+    });
 });
 
 // Get category summary
 app.get('/category-summary', ensureAuthenticated, (req, res) => {
+    const userId = req.session.user.id;
     const getSummaryQuery = `
     SELECT category, SUM(amount) AS total 
     FROM transactions 
-    WHERE type = 'Expense'
+    WHERE type = 'Expense' AND user_id = ?
     GROUP BY category`;
 
-    ddb.query(getSummaryQuery, (err, results) => {
+    ddb.query(getSummaryQuery, [userId], (err, results) => {
         if (err) return res.status(500).json("Failed to fetch category summary");
 
         res.json(results); 
     });
 });
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.clearCookie('connect.sid'); // make sure the cookie is cleared!
+        res.redirect('/index.html');
+    });
+});
+
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -190,20 +212,19 @@ app.post('/login', async (req, res) => {
 });
 
 // Endpoint to add a new transaction
-app.post('/transactions', (req, res) => {
-    const { name, amount, date, type, category } = req.body; // Destructure the incoming data
+app.post('/transactions', ensureAuthenticated, (req, res) => {
+    const { name, amount, date, type, category } = req.body;
+    const userId = req.session.user.id; // grab user ID from session
 
-    // Ensure all fields are provided
     if (!name || !amount || !date || !type || !category) {
         return res.status(400).json("All fields are required.");
     }
 
-    // Insert transaction into the database
     const insertTransactionQuery = `
-        INSERT INTO transactions (name, amount, date, type, category) 
-        VALUES (?, ?, ?, ?, ?)`;
-    
-    ddb.query(insertTransactionQuery, [name, amount, date, type, category], (err, result) => {
+        INSERT INTO transactions (name, amount, date, type, category, user_id)
+        VALUES (?, ?, ?, ?, ?, ?)`;
+
+    ddb.query(insertTransactionQuery, [name, amount, date, type, category, userId], (err, result) => {
         if (err) {
             console.error("Error inserting transaction:", err);
             return res.status(500).json("Failed to add transaction.");
@@ -213,21 +234,14 @@ app.post('/transactions', (req, res) => {
     });
 });
 
+
 // Function to convert DD/MM/YYYY to YYYY-MM-DD
 function convertToYYYYMMDD(dateString) {
     const [day, month, year] = dateString.split('/');
     return `${year}-${month}-${day}`;
 }
 
-// Logout route to destroy session
-app.post('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json('Failed to log out');
-        }
-        res.redirect('/login');
-    });
-});
+// Logout
 
 // Start the server
 app.listen(port, () => {
