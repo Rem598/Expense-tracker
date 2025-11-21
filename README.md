@@ -1,4 +1,4 @@
-# Finance_tracker
+
 # Expense-Tracker
 Expense Tracker application to manage finances.
 
